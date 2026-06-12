@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% macro badge(value, kind='default') -%}
+<span class="badge {{ kind }}">{{ value }}</span>
+{%- endmacro %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="eyebrow">Painel do suporte</p>
+        <h2>Gerencie chamados, prioridades, responsaveis e usuarios do suporte.</h2>
+        <p class="hero-copy">Area administrativa para cadastrar usuarios, abrir chamados em nome de solicitantes, filtrar demandas e acompanhar o atendimento.</p>
+    </div>
+    <div class="hero-actions">
+       <!-- <a class="button secondary" href="/docs">Explorar API</a>-->
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <span>Total</span>
+        <strong>{{ stats.total_tickets }}</strong>
+        <small>chamados no filtro atual</small>
+    </article>
+    <article class="stat-card">
+        <span>Abertos</span>
+        <strong>{{ stats.open_tickets }}</strong>
+        <small>aguardando atendimento</small>
+    </article>
+    <article class="stat-card">
+        <span>Em andamento</span>
+        <strong>{{ stats.in_progress_tickets }}</strong>
+        <small>em execução</small>
+    </article>
+    <article class="stat-card highlight">
+        <span>Críticos</span>
+        <strong>{{ stats.critical_tickets }}</strong>
+        <small>prioridade máxima</small>
+    </article>
+</section>
+
+<section class="panel-grid">
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Cadastrar usuário</h3>
+            <p>Crie solicitantes, suporte e administradores.</p>
+        </div>
+        <form method="post" action="/web/users" class="form-grid">
+            <label>
+                <span>Nome</span>
+                <input name="name" type="text" minlength="3" required>
+            </label>
+            <label>
+                <span>E-mail</span>
+                <input name="email" type="email" required>
+            </label>
+            <label>
+                <span>Senha</span>
+                <input name="password" type="password" minlength="6" required>
+            </label>
+            <label>
+                <span>Perfil</span>
+                <select name="role" required>
+                    {% for role in roles %}
+                    <option value="{{ role.value }}">{{ role.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="button" type="submit">Salvar usuário</button>
+        </form>
+    </article>
+
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Abrir chamado para solicitante</h3>
+            <p>Use quando o suporte registrar uma demanda recebida por telefone, WhatsApp ou presencialmente.</p>
+        </div>
+        <form method="post" action="/web/tickets" class="form-grid">
+            <label class="full">
+                <span>Título</span>
+                <input name="title" type="text" maxlength="200" required>
+            </label>
+            <label class="full">
+                <span>Descrição</span>
+                <textarea name="description" rows="4" required></textarea>
+            </label>
+            <label>
+                <span>Prioridade</span>
+                <select name="priority" required>
+                    {% for priority in priorities %}
+                    <option value="{{ priority.value }}">{{ priority.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Solicitante</span>
+                <select name="requester_id" required>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.name }} ({{ user.role.value }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="button accent" type="submit">Criar chamado</button>
+        </form>
+    </article>
+ </section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h3>Chamados</h3>
+            <p>Use filtros para localizar o atendimento que precisa de ação.</p>
+        </div>
+        <form method="get" action="/admin" class="filter-grid">
+            <label>
+                <span>Status</span>
+                <select name="status">
+                    <option value="">Todos</option>
+                    {% for status in statuses %}
+                    <option value="{{ status.value }}" {% if filters.status == status.value %}selected{% endif %}>{{ status.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Prioridade</span>
+                <select name="priority">
+                    <option value="">Todas</option>
+                    {% for priority in priorities %}
+                    <option value="{{ priority.value }}" {% if filters.priority == priority.value %}selected{% endif %}>{{ priority.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Responsável</span>
+                <select name="responsible_id">
+                    <option value="">Todos</option>
+                    {% for user in support_users %}
+                    <option value="{{ user.id }}" {% if filters.responsible_id == user.id|string %}selected{% endif %}>{{ user.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Solicitante</span>
+                <select name="requester_id">
+                    <option value="">Todos</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if filters.requester_id == user.id|string %}selected{% endif %}>{{ user.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="button secondary" type="submit">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Título</th>
+                    <th>Prioridade</th>
+                    <th>Status</th>
+                    <th>Solicitante</th>
+                    <th>Responsável</th>
+                    <th>Atualização</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                <tr>
+                    <td>#{{ ticket.id }}</td>
+                    <td>
+                        <strong>{{ ticket.title }}</strong>
+                        <p>{{ ticket.description[:90] }}{% if ticket.description|length > 90 %}...{% endif %}</p>
+                    </td>
+                    <td>{{ badge(ticket.priority.value, 'priority-' ~ ticket.priority.name|lower) }}</td>
+                    <td>{{ badge(ticket.status.value, 'status-' ~ ticket.status.name|lower) }}</td>
+                    <td>{{ ticket.requester.name if ticket.requester else ticket.requester_id }}</td>
+                    <td>{{ ticket.responsible.name if ticket.responsible else 'Nao atribuido' }}</td>
+                    <td>{{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td><a class="text-link" href="/tickets/{{ ticket.id }}/view">Abrir</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-state">Nenhum chamado encontrado para os filtros informados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% macro badge(value, kind='default') -%}
+<span class="badge {{ kind }}">{{ value }}</span>
+{%- endmacro %}
+
+{% block content %}
+<section class="detail-header">
+    <div>
+        <a class="back-link" href="/portal">← Voltar aos meus chamados</a>
+        <p class="eyebrow">Meu chamado #{{ ticket.id }}</p>
+        <h2>{{ ticket.title }}</h2>
+        <p class="hero-copy">{{ ticket.description }}</p>
+    </div>
+    <div class="detail-badges">
+        {{ badge(ticket.priority.value, 'priority-' ~ ticket.priority.name|lower) }}
+        {{ badge(ticket.status.value, 'status-' ~ ticket.status.name|lower) }}
+    </div>
+</section>
+
+<section class="stats-grid compact">
+    <article class="stat-card">
+        <span>Solicitante</span>
+        <strong>{{ selected_requester.name }}</strong>
+        <small>{{ selected_requester.email }}</small>
+    </article>
+    <article class="stat-card">
+        <span>Responsável</span>
+        <strong>{{ ticket.responsible.name if ticket.responsible else 'Aguardando suporte' }}</strong>
+        <small>{{ ticket.responsible.role.value if ticket.responsible else 'Ainda nao atribuido' }}</small>
+    </article>
+    <article class="stat-card">
+        <span>Criado em</span>
+        <strong>{{ ticket.created_at.strftime('%d/%m/%Y') }}</strong>
+        <small>{{ ticket.created_at.strftime('%H:%M') }}</small>
+    </article>
+    <article class="stat-card">
+        <span>Última atualização</span>
+        <strong>{{ ticket.updated_at.strftime('%d/%m/%Y') }}</strong>
+        <small>{{ ticket.updated_at.strftime('%H:%M') }}</small>
+    </article>
+</section>
+
+<section class="panel-grid detail">
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Adicionar comentário</h3>
+            <p>{% if ticket.status.value == 'fechado' %}Chamado fechado: comentários bloqueados.{% else %}Envie informações complementares para o suporte.{% endif %}</p>
+        </div>
+        <form method="post" action="/portal/tickets/{{ ticket.id }}/comments" class="form-grid">
+            <label class="full">
+                <span>Comentário</span>
+                <textarea name="comment" rows="6" required {% if ticket.status.value == 'fechado' %}disabled{% endif %}></textarea>
+            </label>
+            <button class="button accent" type="submit" {% if ticket.status.value == 'fechado' %}disabled{% endif %}>Enviar comentário</button>
+        </form>
+    </article>
+
+    <article class="panel guidance-card">
+        <div class="panel-header">
+            <h3>Limites do portal</h3>
+            <p>O solicitante acompanha o atendimento, mas não altera a fila de suporte.</p>
+        </div>
+        <ul class="feature-list">
+            <li>Não altera status.</li>
+            <li>Não muda prioridade.</li>
+            <li>Não atribui responsável.</li>
+            <li>Não visualiza chamados de outros usuários.</li>
+        </ul>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h3>Histórico de comentários</h3>
+        <p>{{ comments|length }} registro(s) neste chamado.</p>
+    </div>
+    <div class="timeline">
+        {% for comment in comments %}
+        <div class="timeline-item">
+            <div class="timeline-meta">
+                <strong>Usuário #{{ comment.user_id }}</strong>
+                <span>{{ comment.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+            <p>{{ comment.comment }}</p>
+        </div>
+        {% else %}
+        <p class="empty-state">Ainda não há comentários para este chamado.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

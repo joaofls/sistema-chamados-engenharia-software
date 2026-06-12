@@ -1,0 +1,13 @@
+Usuários de teste do sistema
+
+Administrador:
+E-mail: admin@empresa.local
+Senha: admin123
+
+Suporte:
+E-mail: suporte@empresa.local
+Senha: support123
+
+Solicitante:
+E-mail: solicitante@empresa.local
+Senha: request123

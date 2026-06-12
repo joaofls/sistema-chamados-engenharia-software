@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-wrapper">
+    <article class="panel auth-card">
+        <div class="panel-header">
+            <p class="eyebrow">Acesso ao sistema</p>
+            <h2>Entrar no sistema de chamados</h2>
+        </div>
+        <form method="post" action="/login" class="form-grid">
+            <input type="hidden" name="next" value="{{ next }}">
+            <label class="full">
+                <span>E-mail</span>
+                <input name="email" type="email" placeholder="admin@empresa.local" required autofocus>
+            </label>
+            <label class="full">
+                <span>Senha</span>
+                <input name="password" type="password" placeholder="Digite a senha" required>
+            </label>
+            <button class="button accent full" type="submit">Entrar</button>
+        </form>
+    </article>
+</section>
+{% endblock %}

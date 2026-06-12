@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% macro badge(value, kind='default') -%}
+<span class="badge {{ kind }}">{{ value }}</span>
+{%- endmacro %}
+
+{% block content %}
+<section class="detail-header">
+    <div>
+        <a class="back-link" href="/admin">← Voltar ao painel do suporte</a>
+        <p class="eyebrow">Chamado #{{ ticket.id }}</p>
+        <h2>{{ ticket.title }}</h2>
+        <p class="hero-copy">{{ ticket.description }}</p>
+    </div>
+    <div class="detail-badges">
+        {{ badge(ticket.priority.value, 'priority-' ~ ticket.priority.name|lower) }}
+        {{ badge(ticket.status.value, 'status-' ~ ticket.status.name|lower) }}
+    </div>
+</section>
+
+<section class="stats-grid compact">
+    <article class="stat-card">
+        <span>Solicitante</span>
+        <strong>{{ ticket.requester.name if ticket.requester else ticket.requester_id }}</strong>
+        <small>{{ ticket.requester.email if ticket.requester else 'Sem e-mail carregado' }}</small>
+    </article>
+    <article class="stat-card">
+        <span>Responsável</span>
+        <strong>{{ ticket.responsible.name if ticket.responsible else 'Nao atribuido' }}</strong>
+        <small>{{ ticket.responsible.role.value if ticket.responsible else 'Defina um atendente' }}</small>
+    </article>
+    <article class="stat-card">
+        <span>Criado em</span>
+        <strong>{{ ticket.created_at.strftime('%d/%m/%Y') }}</strong>
+        <small>{{ ticket.created_at.strftime('%H:%M') }}</small>
+    </article>
+    <article class="stat-card">
+        <span>Última atualização</span>
+        <strong>{{ ticket.updated_at.strftime('%d/%m/%Y') }}</strong>
+        <small>{{ ticket.updated_at.strftime('%H:%M') }}</small>
+    </article>
+</section>
+
+<section class="panel-grid detail">
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Ações rápidas</h3>
+            <p>Atualize o atendimento sem sair da tela.</p>
+        </div>
+        <div class="stacked-forms">
+            <form method="post" action="/web/tickets/{{ ticket.id }}/assign" class="inline-form">
+                <label>
+                    <span>Responsável</span>
+                    <select name="responsible_id" required>
+                        {% for user in support_users %}
+                        <option value="{{ user.id }}" {% if ticket.responsible_id == user.id %}selected{% endif %}>{{ user.name }} ({{ user.role.value }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button class="button" type="submit">Atribuir</button>
+            </form>
+
+            <form method="post" action="/web/tickets/{{ ticket.id }}/status" class="inline-form">
+                <label>
+                    <span>Status</span>
+                    <select name="status" required>
+                        {% for status in statuses %}
+                        <option value="{{ status.value }}" {% if ticket.status == status %}selected{% endif %}>{{ status.value }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    <span>Alterado por</span>
+                    <select name="changed_by" required>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button class="button" type="submit">Salvar status</button>
+            </form>
+
+            <form method="post" action="/web/tickets/{{ ticket.id }}/priority" class="inline-form">
+                <label>
+                    <span>Prioridade</span>
+                    <select name="priority" required>
+                        {% for priority in priorities %}
+                        <option value="{{ priority.value }}" {% if ticket.priority == priority %}selected{% endif %}>{{ priority.value }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button class="button secondary" type="submit">Salvar prioridade</button>
+            </form>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Novo comentário</h3>
+            <p>{% if ticket.status.value == 'fechado' %}Chamado fechado: comentários bloqueados.{% else %}Registre atualizações e observações do atendimento.{% endif %}</p>
+        </div>
+        <form method="post" action="/web/tickets/{{ ticket.id }}/comments" class="form-grid">
+            <label>
+                <span>Usuário</span>
+                <select name="user_id" required {% if ticket.status.value == 'fechado' %}disabled{% endif %}>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="full">
+                <span>Comentário</span>
+                <textarea name="comment" rows="5" required {% if ticket.status.value == 'fechado' %}disabled{% endif %}></textarea>
+            </label>
+            <button class="button accent" type="submit" {% if ticket.status.value == 'fechado' %}disabled{% endif %}>Adicionar comentário</button>
+        </form>
+    </article>
+</section>
+
+<section class="panel-grid detail">
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Histórico de comentários</h3>
+            <p>{{ comments|length }} registro(s) neste chamado.</p>
+        </div>
+        <div class="timeline">
+            {% for comment in comments %}
+            <div class="timeline-item">
+                <div class="timeline-meta">
+                    <strong>Usuário #{{ comment.user_id }}</strong>
+                    <span>{{ comment.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                </div>
+                <p>{{ comment.comment }}</p>
+            </div>
+            {% else %}
+            <p class="empty-state">Ainda não há comentários para este chamado.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Histórico de status</h3>
+            <p>{{ ticket.status_history|length }} mudança(s) registradas.</p>
+        </div>
+        <div class="timeline">
+            {% for history in ticket.status_history %}
+            <div class="timeline-item">
+                <div class="timeline-meta">
+                    <strong>{{ history.old_status.value }} → {{ history.new_status.value }}</strong>
+                    <span>{{ history.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                </div>
+                <p>Alterado por usuário #{{ history.changed_by }}.</p>
+            </div>
+            {% else %}
+            <p class="empty-state">Nenhuma troca de status foi registrada até o momento.</p>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}

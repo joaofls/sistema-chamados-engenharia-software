@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% macro badge(value, kind='default') -%}
+<span class="badge {{ kind }}">{{ value }}</span>
+{%- endmacro %}
+
+{% block content %}
+<section class="hero portal-hero">
+    <div>
+        <p class="eyebrow">Portal do solicitante</p>
+        <h2>Abra chamados e acompanhe as suas solicitações.</h2>
+    </div>
+    <div class="hero-actions">
+        <a class="button secondary" href="/logout">Sair</a>
+    </div>
+</section>
+
+<section class="panel portal-selector">
+    <div class="panel-header">
+        <h3>Identificação do solicitante</h3>
+        <p>Você está logado como <strong>{{ selected_requester.name }}</strong></p>
+    </div>
+</section>
+<section class="stats-grid compact">
+    <article class="stat-card">
+        <span>Meus chamados</span>
+        <strong>{{ stats.total_tickets }}</strong>
+        <small>total vinculado ao usuário</small>
+    </article>
+    <article class="stat-card">
+        <span>Abertos</span>
+        <strong>{{ stats.open_tickets }}</strong>
+        <small>aguardando atendimento</small>
+    </article>
+    <article class="stat-card">
+        <span>Em andamento</span>
+        <strong>{{ stats.in_progress_tickets }}</strong>
+        <small>em execução pelo suporte</small>
+    </article>
+    <article class="stat-card">
+        <span>Fechados</span>
+        <strong>{{ stats.closed_tickets }}</strong>
+        <small>solicitações encerradas</small>
+    </article>
+</section>
+
+<section class="panel-grid">
+    <article class="panel">
+        <div class="panel-header">
+            <h3>Abrir novo chamado</h3>
+            <p>Descreva o problema com clareza. Quanto melhor a descrição, mais rápido o atendimento.</p>
+        </div>
+        <form method="post" action="/portal/tickets" class="form-grid">
+            <label class="full">
+                <span>Título</span>
+                <input name="title" type="text" maxlength="200" placeholder="Ex.: Erro ao acessar o ERP" required>
+            </label>
+            <label class="full">
+                <span>Descrição</span>
+                <textarea name="description" rows="5" placeholder="Informe o que aconteceu, quando começou, setor/equipamento afetado e se já tentou algum procedimento." required></textarea>
+            </label>
+            <label>
+                <span>Prioridade</span>
+                <select name="priority" required>
+                    {% for priority in priorities %}
+                    <option value="{{ priority.value }}">{{ priority.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="button accent" type="submit">Enviar chamado</button>
+        </form>
+    </article>
+
+    <article class="panel guidance-card">
+        <div class="panel-header">
+            <h3>O que o solicitante pode fazer?</h3>
+            <p>Esta tela evita que o usuário comum mexa em dados sensíveis do atendimento.</p>
+        </div>
+        <ul class="feature-list">
+            <li>Abrir chamados somente em seu próprio nome.</li>
+            <li>Ver apenas os chamados vinculados a ele.</li>
+            <li>Adicionar comentários no próprio chamado.</li>
+            <li>Acompanhar prioridade, status e responsável definido pelo suporte.</li>
+        </ul>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h3>Meus chamados</h3>
+        <p>Solicitante atual: <strong>{{ selected_requester.name }}</strong>.</p>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Título</th>
+                    <th>Prioridade</th>
+                    <th>Status</th>
+                    <th>Responsável</th>
+                    <th>Atualização</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                <tr>
+                    <td>#{{ ticket.id }}</td>
+                    <td>
+                        <strong>{{ ticket.title }}</strong>
+                        <p>{{ ticket.description[:90] }}{% if ticket.description|length > 90 %}...{% endif %}</p>
+                    </td>
+                    <td>{{ badge(ticket.priority.value, 'priority-' ~ ticket.priority.name|lower) }}</td>
+                    <td>{{ badge(ticket.status.value, 'status-' ~ ticket.status.name|lower) }}</td>
+                    <td>{{ ticket.responsible.name if ticket.responsible else 'Aguardando atribuição' }}</td>
+                    <td>{{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td><a class="text-link" href="/portal/tickets/{{ ticket.id }}/view">Acompanhar</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">Você ainda não possui chamados cadastrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
